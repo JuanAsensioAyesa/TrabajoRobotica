@@ -351,7 +351,7 @@ class Map2D:
         if saveSnapshot: saves a figure as mapstatus_currenttimestamp_FIGNUM.png
         """
         self.verbose = True
-        #self.verbose = False
+        # self.verbose = False
 
         # create a new figure and set it as current axis
         current_fig = plt.figure()
@@ -365,7 +365,7 @@ class Map2D:
 
         if robotPosVectors:
             for loc in robotPosVectors:
-                #print("Robot in pos: ", loc)
+                # print("Robot in pos: ", loc)
                 self._drawRobot(loc_x_y_th=loc, robotPlotStyle='b--')
             # plot last robot position with solid green line
             self._drawRobot(loc_x_y_th=loc, robotPlotStyle='g-')
@@ -395,7 +395,48 @@ class Map2D:
     # METHODS to IMPLEMENT in P4
     # ############################################################
 
-    # def fillCostMatrix(self, ??):
+    # Fills the costMatrix
+    # out_of_grid indicates rectangles that are not part of the planification grid
+    # this cells are filled with -1
+    # each elem of out_of_grid has the form [cell_1,cell_2]
+    # each cell is [x,y]
+
+    def fillCostMatrix(self, goals, out_of_grid=[]):
+        frente = []
+        for cell in goals:
+            self.costMatrix[cell[0], cell[1]] = 0
+            frente.append(np.array(cell))
+
+        for limit in out_of_grid:
+            cell_1 = limit[0]
+            cell_2 = limit[1]
+            serie_x = np.arange(
+                min(cell_1[0], cell_2[0]), max(cell_1[0], cell_2[0])+1)
+            serie_y = np.arange(
+                min(cell_1[1], cell_2[1]), max(cell_1[1], cell_2[1])+1)
+
+            for i in serie_x:
+                for j in serie_y:
+                    self.costMatrix[i, j] = -1
+        cost = 1
+        neighbours = [0, 2, 4, 6]
+        increms = [[0, 1], [1, 0], [0, -1], [-1, 0]]
+        while len(frente) > 0:
+            frente_1 = []
+            for cell in frente:
+                for i, neighbour in enumerate(neighbours):
+                    if self.isConnected(cell[0], cell[1], neighbour):
+                        increm = np.array(increms[i])
+                        neigh_cell = cell + increm
+                        neigh_cell_cost = self.costMatrix[neigh_cell[0],
+                                                          neigh_cell[1]]
+                        if neigh_cell_cost != -1 and (neigh_cell_cost > cost or neigh_cell_cost == -2):
+                            frente_1.append(neigh_cell)
+                            self.costMatrix[neigh_cell[0],
+                                            neigh_cell[1]] = cost
+            cost = cost + 1
+            frente = frente_1
+
     # """
     # NOTE: Make sure self.costMatrix is a 2D numpy array of dimensions dimX x dimY
     # TO-DO
