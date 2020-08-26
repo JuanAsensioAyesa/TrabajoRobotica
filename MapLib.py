@@ -443,7 +443,7 @@ class Map2D:
     # """
     # self.costMatrix = ....
 
-    def findPath(self, x_ini,  y_ini, x_end, y_end):
+    def findPath(self, init, goals, out_of_grid=[]):
         """
         x_ini, y_ini, x_end, y_end: integer values that indicate \
             the x and y coordinates of the starting (ini) and ending (end) cell
@@ -451,13 +451,37 @@ class Map2D:
         NOTE: Make sure self.currentPath is a 2D numpy array
         ...  TO-DO  ....
         """
-        # FAKE sample path: [ [0,0], [0,0], [0,0], ...., [0,0]  ]
-        self.currentPath = np.array([[0, 0]] * num_steps)
-        pathFound = True
+        self._initCostMatrix()
+        self.fillCostMatrix(goals, out_of_grid)
 
-        # ????
+        cost_matrix = self.costMatrix
 
-        return pathFound
+        neigbour_increment = [[0, 1], [1, 0], [0, -1], [-1, 0]]
+        neighbour_index = [0, 2, 4, 6]
+        path = [np.array(init)]
+
+        n = 0
+        best_neighbour = []
+        best_cost = np.inf
+        some_found = True
+        #print("GOALS", goals)
+        while not list(path[n]) in list(goals) and some_found:
+            some_found = False
+            for i, inc in enumerate(neigbour_increment):
+                neighbour = np.array(path[n]) + np.array(inc)
+                actual = path[n]
+                if self.isConnected(actual[0], actual[1], neighbour_index[i]):
+
+                    #print("CONNECT", actual[0], actual[1], i)
+                    if cost_matrix[neighbour[0], neighbour[1]] < best_cost and cost_matrix[neighbour[0], neighbour[1]] >= 0:
+                        best_cost = cost_matrix[neighbour[0], neighbour[1]]
+                        best_neighbour = neighbour
+                        some_found = True
+            if some_found:
+                path.append(best_neighbour)
+                n = n+1
+
+        return path
 
     # def replanPath(self, ??):
     # """ TO-DO """
