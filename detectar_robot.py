@@ -9,11 +9,15 @@ from Robot import Robot
 
 def main(args):
     try:
-
+        R2 = "R2-D2_s.png"
+        BB = "BB8_s.png"
         robot = Robot()
-        blobs = robot.return_blobs(args.image, (10, 10, 100), (50, 50, 255))
-        print(blobs)
-        print(len(blobs))
+        coord_R2 = robot.match(R2, args.image)
+        coord_BB = robot.match(BB, args.image)
+
+        print("R2", coord_R2)
+        print("BB", coord_BB)
+
     except KeyboardInterrupt:
         # except the program gets interrupted by Ctrl+C on the keyboard.
         # THIS IS IMPORTANT if we want that motors STOP when we Ctrl+C ...
@@ -25,7 +29,7 @@ if __name__ == "__main__":
     # get and parse arguments passed to main
     # Add as many args as you need ...
     ap = argparse.ArgumentParser()
-    ap.add_argument("-i", "--image", default="many.jpg",
+    ap.add_argument("-i", "--image", default="test2.jpg",
                     help="path to the input image")
 
     args = ap.parse_args()

@@ -18,11 +18,9 @@ def main(args):
             print("d is too high")
             exit(1)
 
-        params = {}
-
         # Instantiate Odometry. Default value will be 0,0,0
-        robot = Robot(params, init_position=[
-                      600, (6*400 + 200), math.radians(270)])
+        robot = Robot(init_position=[
+            600, (6*400 + 200), math.radians(270)])
 
         robot.rota(math.radians(180), .2)
         # robot.alcanza_objetivo(

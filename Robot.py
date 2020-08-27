@@ -11,6 +11,7 @@ import sys
 import random  # Simular perturbaciones
 import numpy as np
 import math
+import cv2
 # tambien se podria utilizar el paquete de threading
 from multiprocessing import Process, Value, Array, Lock
 
@@ -67,7 +68,7 @@ def norm_pi(th):
 
 
 class Robot:
-    def __init__(self,  params, init_position=[0.0, 0.0, 0.0]):
+    def __init__(self,  init_position=[0.0, 0.0, 0.0]):
         """
         Initialize basic robot params. \
 
@@ -186,7 +187,7 @@ class Robot:
             print("Velocity", velocity)
             error_v = np.array([velocity[0], velocity[1]]) - np.array([v, w])
             error_v = -error_v
-            #print(v, w)
+            # print(v, w)
 
             accion = accion_1 + Kp * error_v + (Ki * .1 - Kp) * error_1
             print(accion, error_v, v, w)
@@ -249,7 +250,7 @@ class Robot:
         signo = -1
         v = self.v + signo*(self.v * percentage)
         w = self.w + signo*(self.w*percentage)
-        #self.setSpeed(v, w)
+        # self.setSpeed(v, w)
         return v, w
 
     def readOdometry(self):
@@ -270,57 +271,169 @@ class Robot:
 
     def readW_acc(self):
         return self.W_acc
-        # def startOdometry(self):
-        #     """ This starts a new process/thread that will be updating the odometry periodically """
-        #     self.finished.value = False
-        #     # additional_params?))
-        #     self.p = Process(target=self.updateOdometry, args=())
-        #     self.p.start()
-        #     print("PID: ", self.p.pid)
 
-        # # You may want to pass additional shared variables besides the odometry values and stop flag
-        # def updateOdometry(self):  # , additional_params?):
-        #     """ To be filled ...  """
+    # Devuelve la media de la posicion de los matches de la imagen
+    # img con la referencia ref
+    def match(self, ref, img):
+        imgReference = cv2.imread(ref, cv2.IMREAD_COLOR)
+        img = cv2.imread(img, cv2.IMREAD_COLOR)
 
-        #     while not self.finished.value:
-        #         # current processor time in a floating point value, in seconds
-        #         tIni = time.clock()
+        # Pasamos a blanco y negro para el feature extraction
+        imgReference_gray = cv2.cvtColor(imgReference, cv2.COLOR_BGR2GRAY)
+        img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        #         # compute updates
+        # Create a detector with the parameters
+        ver = (cv2.__version__).split('.')
+        if int(ver[0]) < 3:  # CURRENT RASPBERRY opencv version is 2.4.9
+            # Initiate ORB detector --> you could use any other detector, but this is the best performing one in this version
+            binary_features = True
 
-        #         ######## UPDATE FROM HERE with your code (following the suggested scheme) ########
-        #         sys.stdout.write("Update of odometry ...., X=  %d, \
-        #             Y=  %d, th=  %d \n" % (self.x.value, self.y.value, self.th.value))
-        #         #print("Dummy update of odometry ...., X=  %.2f" %(self.x.value) )
+            detector = cv2.ORB()
+        else:
+            # Initiate BRISK detector --> you could use any other detector, including NON binary features (SIFT, SURF)
+            # but this is the best performing one in this version
+            binary_features = True
+            detector = cv2.BRISK_create()
 
-        #         # update odometry uses values that require mutex
-        #         # (they are declared as value, so lock is implicitly done for atomic operations, BUT =+ is NOT atomic)
+        # find the keypoints and corresponding descriptors
+        kp1, des1 = detector.detectAndCompute(imgReference_gray, None)
+        kp2, des2 = detector.detectAndCompute(img_gray, None)
 
-        #         # Operations like += which involve a read and write are not atomic.
-        #         # with self.x.get_lock():
-        #         #     self.x.value += 1
+        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        matches = bf.match(des1, des2)
+        matches = sorted(matches, key=lambda x: x.distance)
+        good = matches
 
-        #         # # to "lock" a whole set of operations, we can use a "mutex"
-        #         # self.lock_odometry.acquire()
-        #         # # self.x.value+=1
-        #         # self.y.value += 1
-        #         # self.th.value += 1
-        #         # self.lock_odometry.release()
+        MIN_MATCH_COUNT = 20          # initially
 
-        #         # save LOG
-        #         # Need to decide when to store a log with the updated odometry ...
+        MIN_MATCH_OBJECTFOUND = 10    # after robust check, to consider object-found
+        matchesMask = None
+        if len(good) > MIN_MATCH_COUNT:
+            src_pts = np.float32(
+                [kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
+            dst_pts = np.float32(
+                [kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+            H_21, mask = cv2.findHomography(
+                src_pts, dst_pts, cv2.RANSAC, 3.0)
+            matchesMask = mask.ravel().tolist()
+            num_robust_matches = np.sum(matchesMask)
+            if num_robust_matches < MIN_MATCH_OBJECTFOUND:
+                found = False
+                print("NOT enough ROBUST matches found - %d (required %d)" %
+                      (num_robust_matches, MIN_MATCH_OBJECTFOUND))
+                exit(1)
+        else:
+            print("Not enough initial matches are found - %d (required %d)" %
+                  (len(good), MIN_MATCH_COUNT))
+            exit(1)
 
-        #         ######## UPDATE UNTIL HERE with your code ########
+        acum = np.array([0, 0])
+        for i, m in enumerate(matches):
+            if matchesMask is None or (matchesMask is not None and mask[i]):
+                coord = kp2[m.trainIdx].pt
+                coord = np.array(coord)
+                acum = acum + coord
+        return acum / sum(matchesMask)
 
-        #         tEnd = time.clock()
-        #         time.sleep(self.P - (tEnd-tIni))
+    # Devuelve una lista con todos los blobs del color indicado entre los rangos min y max
 
-        #     #print("Stopping odometry ... X= %d" %(self.x.value))
-        #     sys.stdout.write("Stopping odometry ... X=  %.2f, \
-        #             Y=  %.2f, th=  %.2f \n" % (self.x.value, self.y.value, self.th.value))
+    def return_blobs(self, image, color_min, color_max):
+        img_BGR = cv2.imread(image)
+        # Setup default values for SimpleBlobDetector parameters.
+        params = cv2.SimpleBlobDetector_Params()
 
-        # # Stop the odometry thread.
+        # These are just examples, tune your own if needed
+        # Change thresholds
+        params.minThreshold = 10
+        params.maxThreshold = 200
 
-        # def stopOdometry(self):
-        #     self.finished.value = True
-        #     # self.BP.reset_all()
+        # Filter by Area
+        params.filterByArea = True
+        params.minArea = 200
+        params.maxArea = 10000
+
+        # Filter by Circularity
+        params.filterByCircularity = True
+        params.minCircularity = 0.1
+
+        # Filter by Color
+        params.filterByColor = False
+        # not directly color, but intensity on the channel input
+        #params.blobColor = 0
+        params.filterByConvexity = False
+        params.filterByInertia = False
+        mask_color = cv2.inRange(img_BGR, color_min, color_max)
+
+        # Create a detector with the parameters
+        ver = (cv2.__version__).split('.')
+        if int(ver[0]) < 3:
+            detector = cv2.SimpleBlobDetector(params)
+        else:
+            detector = cv2.SimpleBlobDetector_create(params)
+
+        # keypoints on original image (will look for blobs in grayscale)
+        keypoints = detector.detect(img_BGR)
+
+        # detector finds "dark" blobs by default, so invert image for results with same detector
+        keypoints_color = detector.detect(255-mask_color)
+
+        K = []
+        for k in keypoints_color:
+            K.append((k.pt[0], k.pt[1], k.size))
+        return K
+
+
+# def startOdometry(self):
+#     """ This starts a new process/thread that will be updating the odometry periodically """
+#     self.finished.value = False
+#     # additional_params?))
+#     self.p = Process(target=self.updateOdometry, args=())
+#     self.p.start()
+#     print("PID: ", self.p.pid)
+
+# # You may want to pass additional shared variables besides the odometry values and stop flag
+# def updateOdometry(self):  # , additional_params?):
+#     """ To be filled ...  """
+
+#     while not self.finished.value:
+#         # current processor time in a floating point value, in seconds
+#         tIni = time.clock()
+
+#         # compute updates
+
+#         ######## UPDATE FROM HERE with your code (following the suggested scheme) ########
+#         sys.stdout.write("Update of odometry ...., X=  %d, \
+#             Y=  %d, th=  %d \n" % (self.x.value, self.y.value, self.th.value))
+#         #print("Dummy update of odometry ...., X=  %.2f" %(self.x.value) )
+
+#         # update odometry uses values that require mutex
+#         # (they are declared as value, so lock is implicitly done for atomic operations, BUT =+ is NOT atomic)
+
+#         # Operations like += which involve a read and write are not atomic.
+#         # with self.x.get_lock():
+#         #     self.x.value += 1
+
+#         # # to "lock" a whole set of operations, we can use a "mutex"
+#         # self.lock_odometry.acquire()
+#         # # self.x.value+=1
+#         # self.y.value += 1
+#         # self.th.value += 1
+#         # self.lock_odometry.release()
+
+#         # save LOG
+#         # Need to decide when to store a log with the updated odometry ...
+
+#         ######## UPDATE UNTIL HERE with your code ########
+
+#         tEnd = time.clock()
+#         time.sleep(self.P - (tEnd-tIni))
+
+#     #print("Stopping odometry ... X= %d" %(self.x.value))
+#     sys.stdout.write("Stopping odometry ... X=  %.2f, \
+#             Y=  %.2f, th=  %.2f \n" % (self.x.value, self.y.value, self.th.value))
+
+# # Stop the odometry thread.
+
+# def stopOdometry(self):
+#     self.finished.value = True
+#     # self.BP.reset_all()
