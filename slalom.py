@@ -22,14 +22,12 @@ def main(args):
         robot = Robot(init_position=[
             600, (6*400 + 200), math.radians(270)])
 
-        robot.rota(math.radians(180), .2)
-        # robot.alcanza_objetivo(
-        #     [600, (6*400 + 200), 3.14], 0, 200, 0.2)
-        # Hay que cambiarlo para que entre de parametro de entrada
+        robot.rota(math.radians(235), .2)
+        R = -800
         robot.alcanza_objetivo(
-            [600, (4*400 + 200), 3.14], 30, 0, 2)
+            [600, (4*400 + 200), 3.14], 30, R, 2)
         robot.alcanza_objetivo(
-            [600, (2*400 + 200), 3.14], 30, 0, 2)
+            [600, (2*400 + 200), 3.14], 30, -R, 2)
         POS = robot.readPositions()
 
         plt.figure("V")
@@ -49,7 +47,7 @@ def main(args):
 
         # for elem in POS2:
         #     POS.append(elem)
-        print(len(POS))
+        # print(len(POS))
         myMap = Map2D("mapa1.txt")
         myMap.drawMapWithRobotLocations(
             POS, saveSnapshot=False)

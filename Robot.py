@@ -147,11 +147,42 @@ class Robot:
             # print(math.degrees(pos[2]), math.degrees(theta))
             self.POS.append(pos)
         self.th = Value('d', pos[2])
-    # Alcanza un objetivo con un error <= error
-    # Realiza una circunferencia de radio R
-    # Alcanza el objetivo en T segundos
+
+    # Encuentra el angulo de rotacion inicial para llegar al objetivo con
+    # un Radio R
+    # El angulo lo encuentra incrementando por inc en cada iteración (radianes)
+    def encuentra_angulo(self, wXg, R, inc=.001):
+        wXr = self.readOdometry()
+
+        wTr = hom(wXr)
+        wTg = hom(wXg)
+        rTw = np.linalg.inv(wTr)
+        rTg = rTw.dot(wTg)
+        rXg = loc(rTg)
+        x = rXg[0]
+        y = rXg[1]
+        R_est = (np.power(x, 2)+np.power(y, 2))/(2*y)
+        theta = wXr[2]
+        while abs(R_est-R) > abs(R*0.01):
+            print(R_est)
+            theta = norm_pi(theta + inc)
+            wTr = hom([wXr[0], wXr[1], theta])
+            wTg = hom(wXg)
+            rTw = np.linalg.inv(wTr)
+            rTg = rTw.dot(wTg)
+            rXg = loc(rTg)
+            x = rXg[0]
+            y = rXg[1]
+            R_est = (np.power(x, 2)+np.power(y, 2))/(2*y)
+        self.rota(theta, 0.2)
+        return R_est
+        # Alcanza un objetivo con un error <= error
+        # Realiza una circunferencia de radio R
+        # Alcanza el objetivo en T segundos
 
     def alcanza_objetivo(self, wXg, error, R, T):
+
+        R = self.encuentra_angulo(wXg, R)
         wXr = self.readOdometry()
         # Posicion del robot respecto del mundo
         wTr = hom(wXr)
@@ -167,8 +198,8 @@ class Robot:
         rXg = loc(rTg)
         x = rXg[0]
         y = rXg[1]
-
         R = (np.power(x, 2)+np.power(y, 2))/(2*y)
+
         print("X Y R", x, y, R)
         dist = np.sqrt(x*x+y*y)
         v = dist/T
@@ -184,13 +215,13 @@ class Robot:
         accion_1 = np.array([v, w])
         while dist > error:
             velocity = self.readSpeed()
-            print("Velocity", velocity)
+            #print("Velocity", velocity)
             error_v = np.array([velocity[0], velocity[1]]) - np.array([v, w])
             error_v = -error_v
             # print(v, w)
 
             accion = accion_1 + Kp * error_v + (Ki * .1 - Kp) * error_1
-            print(accion, error_v, v, w)
+            #print(accion, error_v, v, w)
             error_1 = error_v
             accion_1 = accion
             self.setSpeed(accion[0], accion[1])
