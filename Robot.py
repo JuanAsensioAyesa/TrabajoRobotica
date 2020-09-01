@@ -94,49 +94,19 @@ def arista(celda1, celda2):
 class Robot:
     def __init__(self,  init_position=[0.0, 0.0, 0.0]):
         """
-        Initialize basic robot params. \
-
-        Initialize Motors and Sensors according to the set up in your robot
+            Clase para representar al robot
+            x,y,th -> posicion x,y del robot y su orientacion
+            v,w -> velocidades lineal y angular actuales
+            V,W -> Listas con el registro de velocidades linear angular recogidas por readOdometry
+            V_acc,W_acc -> Listas con el registro de velocidades establecidas con setSpeed
+            POS-> Lista de las posiciones del robot
+            error-> (Unused) Flag para indicar que se ha producido un error en la lectura de la velocidad
         """
 
-######## UNCOMMENT and FILL UP all you think is necessary (following the suggested scheme) ########
-
-        # Robot construction parameters
-        # self.R = ??
-        # self.L = ??
-        # self. ...
-
-        ##################################################
-        # Motors and sensors setup
-
-        # Create an instance of the BrickPi3 class. BP will be the BrickPi3 object.
-        # self.BP = brickpi3.BrickPi3()
-
-        # Configure sensors, for example a touch sensor.
-        # self.BP.set_sensor_type(self.BP.PORT_1, self.BP.SENSOR_TYPE.TOUCH)
-
-        # reset encoder B and C (or all the motors you are using)
-        # self.BP.offset_motor_encoder(self.BP.PORT_B,
-        #    self.BP.get_motor_encoder(self.BP.PORT_B))
-        # self.BP.offset_motor_encoder(self.BP.PORT_C,
-        #    self.BP.get_motor_encoder(self.BP.PORT_C))
-
-        ##################################################
         # odometry shared memory values
         self.x = Value('d', init_position[0])
         self.y = Value('d', init_position[1])
         self.th = Value('d', init_position[2])
-        # boolean to show if odometry updates are finished
-        self.finished = Value('b', 1)
-
-        # if we want to block several instructions to be run together, we may want to use an explicit Lock
-        # self.lock_odometry = Lock()
-        # self.lock_odometry.acquire()
-        # print('hello world', i)
-        # self.lock_odometry.release()
-
-        # odometry update period --> UPDATE value!
-        self.P = 1.0
 
         # Velocidades lineal y angular
         self.v = 0
@@ -150,14 +120,20 @@ class Robot:
         self.POS = [init_position]
         self.error = False
 
+    """
+        Establece v como velocidad lineal del robot  y 
+        w como velocidad angular del robot
+    """
+
     def setSpeed(self, v, w):
-        """ To be filled - These is all dummy sample code """
-        # print("setting speed to %.2f %.2f" % (v, w))
 
         self.v = v
         self.w = w
 
-    # Rota en su posicion hasta alcanzar el angulo theta en T segundos
+    """ 
+        Rota en su posicion hasta alcanzar el angulo theta en T segundos
+    """
+
     def rota(self, theta, T):
         pos = self.readOdometry()
         theta = norm_pi(theta)
@@ -172,9 +148,12 @@ class Robot:
             self.POS.append(pos)
         self.th = Value('d', pos[2])
 
-    # Encuentra el angulo de rotacion inicial para llegar al objetivo con
-    # un Radio R
-    # El angulo lo encuentra incrementando por inc en cada iteración (radianes)
+    """
+        Encuentra el angulo de rotacion inicial para llegar al objetivo con
+        un Radio R
+        El angulo lo encuentra incrementando por inc en cada iteración (radianes)
+    """
+
     def encuentra_angulo(self, wXg, R, inc=.001):
         wXr = self.readOdometry()
 
@@ -187,8 +166,8 @@ class Robot:
         y = rXg[1]
         R_est = (np.power(x, 2)+np.power(y, 2))/(2*y)
         theta = wXr[2]
-        signo = -(R/abs(R))
-        while abs(R_est-R) > abs(R*0.01):
+        signo = -(R/abs(R))  # Para que no "De la vuelta" en sentido contrario
+        while abs(R_est-R) > abs(R*0.01):  # Error del 1% (En radianes)
             print(R_est)
             theta = norm_pi(theta + inc * signo)
             wTr = hom([wXr[0], wXr[1], theta])
@@ -201,9 +180,22 @@ class Robot:
             R_est = (np.power(x, 2)+np.power(y, 2))/(2*y)
         self.rota(theta, 0.2)
         return R_est
-        # Alcanza un objetivo con un error <= error
-        # Realiza una circunferencia de radio R
-        # Alcanza el objetivo en T segundos
+
+    """ 
+        Alcanza el objetivo wXg con un error <= error en T segundos
+
+        si R != describe una trayectoria con ese radio
+
+        si rotar = True el robot rota en su posicion al inicio de la trayectoria de forma que sea una
+        trayectoria realizable
+
+        Cada 0.1 segundos simula la posicion del robot actualizando
+        POS,V,W,V_acc,W_acc
+        Además se actualiza la posicion del robot
+
+        Implementación en bucle cerrado siguiendo un control PI
+
+    """
 
     def alcanza_objetivo(self, wXg, error, R, T, rotar=True):
         wXr = self.readOdometry()
@@ -227,7 +219,6 @@ class Robot:
         rXg = loc(rTg)
         x = rXg[0]
         y = rXg[1]
-       # R = (np.power(x, 2)+np.power(y, 2))/(2*y)
 
         # print("X Y R", x, y, R)
         dist = np.sqrt(x*x+y*y)
@@ -247,9 +238,8 @@ class Robot:
         while dist > error:
             velocity = self.readSpeed()
             # print("Velocity", velocity)
-            error_v = np.array([velocity[0], velocity[1]]) - np.array([v, w])
-            error_v = -error_v
-            # print(v, w)
+            error_v = np.array([v, w]) - np.array([velocity[0], velocity[1]])
+            #error_v = -error_v
 
             accion = accion_1 + Kp * error_v + (Ki * .1 - Kp) * error_1
             # print(accion, error_v, v, w)
@@ -269,9 +259,15 @@ class Robot:
             self.W.append(velocity[1])
             self.V_acc.append(accion[0])
             self.W_acc.append(accion[1])
+            # Actualizamos la posicion del robot
             self.x = Value('d', loc_robot[0])
             self.y = Value('d', loc_robot[1])
             self.th = Value('d', loc_robot[2])
+
+    """
+        Simula el movimiento del robot desde xWR T segundos
+        v,w = vc
+    """
 
     def simubot(self, vc, xWR, T):
         if vc[1] == 0:   # w=0
@@ -288,22 +284,25 @@ class Robot:
         xWRp = loc(np.dot(hom(xWR), hom(xRk)))   # nueva localizaci�n xWR
         return xWRp
 
-    # Genera un error aleatorio
-    # Probabilidad de error = 0.1 (Cada vez que se lee)
-    # Una vez hay error:
-    # Error de un 10% -> probabilidad 70%
-    # Error de un 20% -> probabilidad 25%
-    # Error de un 30% -> probabilidad 5%
-    def readSpeed(self):
+    """
+        Lee la velocidad actual del robot
+        Genera un error con probabilidad p
+        Una vez que se ha producido un error:
+            error del 10% -> p = 0.75
+            error del 20% -> p = 0.15
+            error del 50% -> p = 0.1
+    """
+
+    def readSpeed(self, p=0.05):
         error = random.randint(0, 100)
         percentage = 0
-        if(error >= 90):
+        if(error >= (1-p)*100):
             self.error = True
             # print("ERROR")
             error = random.randint(0, 100)
             if(error >= 90):
                 percentage = 0.5
-            elif(error >= 75):
+            elif(error > 75):
                 percentage = 0.2
             else:
                 error = 0.1
@@ -315,27 +314,53 @@ class Robot:
         # self.setSpeed(v, w)
         return v, w
 
+    """
+        Devuelve la posicion actual
+    """
+
     def readOdometry(self):
         """ Returns current value of odometry estimation """
         return self.x.value, self.y.value, self.th.value
 
+    """
+        Devuelve la lista de posiciones recorridas
+    """
+
     def readPositions(self):
         return self.POS
+    """
+        Devuelve la lista de velocidades lineales leidas con readSpeed
+    """
 
     def readV(self):
         return self.V
+    """
+        Devuelve la lista de velocidades angulares leidas con readSpeed
+    """
 
     def readW(self):
         return self.W
+    """
+        Devuelve la lista de velocidades lineales declaradas con setSpeed
+    """
 
     def readV_acc(self):
         return self.V_acc
+    """
+        Devuelve la lista de velocidades angulares declaradas con setSpeed
+    """
 
     def readW_acc(self):
         return self.W_acc
 
-    # Devuelve la media de la posicion de los matches de la imagen
-    # img con la referencia ref
+    """
+        ref-> path a la imagen de referencia
+        img-> imagen que analizar
+
+        Devuelve la media de la posicion de los keypoints de la imagen de referencia
+        que coinciden en img
+    """
+
     def match(self, ref, img):
         imgReference = cv2.imread(ref, cv2.IMREAD_COLOR)
         img = cv2.imread(img, cv2.IMREAD_COLOR)
@@ -397,7 +422,11 @@ class Robot:
                 acum = acum + coord
         return acum / sum(matchesMask)
 
-    # Devuelve una lista con todos los blobs del color indicado entre los rangos min y max
+    """
+        Devuelve una lista con todos los blobs de 
+        tal que color_min <= color_blob <= color_max
+        
+    """
 
     def return_blobs(self, image, color_min, color_max):
         img_BGR = cv2.imread(image)
@@ -441,6 +470,20 @@ class Robot:
             K.append((k.pt[0], k.pt[1], k.size))
         return K
 
+    """
+        file_obstaculos es un fichero de texto con lineas que indican obstaculos:
+            x,y,a -> la celda (x,y) tiene un obstaculo en su arista a
+            valores de a: 7  0  1
+                          6  xy 2
+                          5  4  3
+            mapa indica si el mapa es el A o el B
+            goals son las casillas de final de planificacion
+
+            Devuelve localizaciones,myMap
+            Localizaciones contiene el camino que ha realizado el robot, myMap el objeto 
+            tipo map2D para el plot
+    """
+
     def planificar(self, file_obstaculos, mapa, goals):
         f = open(file_obstaculos)
         obstaculos = []
@@ -452,6 +495,7 @@ class Robot:
 
         myMap = Map2D("mapa1.txt")
 
+        # Partes a excluir segun sea la el mapa A o B
         parte_izq = [[0, 6], [2, 2]]
         parte_central = [[3, 6], [6, 3]]
         parte_dch = [[7, 6], [9, 2]]
@@ -489,12 +533,13 @@ class Robot:
                 siguiente = path[i+1]
                 conexion = arista(posicion, siguiente)
                 if not mapa_real.isConnected(posicion[0], posicion[1], conexion):
-                    print("PATH anterior", path)
+                    #print("PATH anterior", path)
+                    # Se ha detectado un obstaculo inesperado, se recalcula el camino
                     myMap.deleteConnection(posicion[0], posicion[1], conexion)
 
                     path = myMap.findPath(posicion, goals, out_of_grid=[
                         parte_izq, parte_central, parte_dch])
-                    print("PATH posterior", path)
+                    #print("PATH posterior", path)
                     i = 0
                     N = len(path)
 
@@ -525,58 +570,3 @@ class Robot:
             self.th = Value('d', theta)
 
         return localizaciones_robot, myMap
-
-    # def startOdometry(self):
-    #     """ This starts a new process/thread that will be updating the odometry periodically """
-    #     self.finished.value = False
-    #     # additional_params?))
-    #     self.p = Process(target=self.updateOdometry, args=())
-    #     self.p.start()
-    #     print("PID: ", self.p.pid)
-
-    # # You may want to pass additional shared variables besides the odometry values and stop flag
-    # def updateOdometry(self):  # , additional_params?):
-    #     """ To be filled ...  """
-
-    #     while not self.finished.value:
-    #         # current processor time in a floating point value, in seconds
-    #         tIni = time.clock()
-
-    #         # compute updates
-
-    #         ######## UPDATE FROM HERE with your code (following the suggested scheme) ########
-    #         sys.stdout.write("Update of odometry ...., X=  %d, \
-    #             Y=  %d, th=  %d \n" % (self.x.value, self.y.value, self.th.value))
-    #         #print("Dummy update of odometry ...., X=  %.2f" %(self.x.value) )
-
-    #         # update odometry uses values that require mutex
-    #         # (they are declared as value, so lock is implicitly done for atomic operations, BUT =+ is NOT atomic)
-
-    #         # Operations like += which involve a read and write are not atomic.
-    #         # with self.x.get_lock():
-    #         #     self.x.value += 1
-
-    #         # # to "lock" a whole set of operations, we can use a "mutex"
-    #         # self.lock_odometry.acquire()
-    #         # # self.x.value+=1
-    #         # self.y.value += 1
-    #         # self.th.value += 1
-    #         # self.lock_odometry.release()
-
-    #         # save LOG
-    #         # Need to decide when to store a log with the updated odometry ...
-
-    #         ######## UPDATE UNTIL HERE with your code ########
-
-    #         tEnd = time.clock()
-    #         time.sleep(self.P - (tEnd-tIni))
-
-    #     #print("Stopping odometry ... X= %d" %(self.x.value))
-    #     sys.stdout.write("Stopping odometry ... X=  %.2f, \
-    #             Y=  %.2f, th=  %.2f \n" % (self.x.value, self.y.value, self.th.value))
-
-    # # Stop the odometry thread.
-
-    # def stopOdometry(self):
-    #     self.finished.value = True
-    #     # self.BP.reset_all()

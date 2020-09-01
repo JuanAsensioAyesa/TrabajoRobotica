@@ -395,11 +395,13 @@ class Map2D:
     # METHODS to IMPLEMENT in P4
     # ############################################################
 
-    # Fills the costMatrix
-    # out_of_grid indicates rectangles that are not part of the planification grid
-    # this cells are filled with -1
-    # each elem of out_of_grid has the form [cell_1,cell_2]
-    # each cell is [x,y]
+    """
+        Fills the costMatrix according with NF1 algorithm
+        out_of_grid indicates rectangles that are not part of the planification grid
+        this cells are filled with -1
+        each elem of out_of_grid has the form [cell_1,cell_2]
+        each cell is [x,y]
+    """
 
     def fillCostMatrix(self, goals, out_of_grid=[]):
         frente = []
@@ -440,14 +442,17 @@ class Map2D:
     # """
     # NOTE: Make sure self.costMatrix is a 2D numpy array of dimensions dimX x dimY
 
-    def findPath(self, init, goals, out_of_grid=[]):
-        """
-        x_ini, y_ini, x_end, y_end: integer values that indicate \
-            the x and y coordinates of the starting (ini) and ending (end) cell
+    """
+        init is a the init cell for the planification
+        goals are the list of goal cells
+        out_of_grid indicates rectangles that are not part of the planification grid
+        this cells are filled with -1
+        each elem of out_of_grid has the form [cell_1,cell_2]
+        each cell is [x,y]
+    """
 
-        NOTE: Make sure self.currentPath is a 2D numpy array
-        ...  TO-DO  ....
-        """
+    def findPath(self, init, goals, out_of_grid=[]):
+
         self._initCostMatrix()
         self.fillCostMatrix(goals, out_of_grid)
 

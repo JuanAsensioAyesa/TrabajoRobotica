@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
     posiciones_robot = robot.readPositions()
 
-    print(blobs[0])
+    print(blobs[-1])
 
     for pos in posiciones_planificacion:
         posiciones_robot.append(pos)

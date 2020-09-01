@@ -6,6 +6,13 @@ import time
 from Robot import Robot
 
 
+"""
+    Devuelve la lista ordenada de los blobs de color rojo detectados por el 
+    robot
+    La lista estara ordenada de menor a mayor tamanio del blob
+"""
+
+
 def detectar_blob(robot, imagen):
 
     blobs = robot.return_blobs(imagen, (10, 10, 100), (50, 50, 255))
