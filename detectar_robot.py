@@ -1,37 +1,40 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
-import argparse
-import cv2
 import numpy as np
-import time
 from Robot import Robot
 
 
-def main(args):
-    try:
-        R2 = "R2-D2_s.png"
-        BB = "BB8_s.png"
-        robot = Robot()
-        coord_R2 = robot.match(R2, args.image)
-        coord_BB = robot.match(BB, args.image)
+def detectar_robot(robot, imagen, robot_objetivo):
+    R2 = "R2-D2_s.png"
+    BB = "BB8_s.png"
 
-        print("R2", coord_R2)
-        print("BB", coord_BB)
+    coord_R2 = robot.match(R2, imagen)
+    coord_BB = robot.match(BB, imagen)
 
-    except KeyboardInterrupt:
-        # except the program gets interrupted by Ctrl+C on the keyboard.
-        # THIS IS IMPORTANT if we want that motors STOP when we Ctrl+C ...
-        print("Programa interrumpido")
+    R2_x = coord_R2[0]
+    BB_x = coord_BB[0]
 
+    fin_izq = [4, 6]
+    fin_dch = [5, 6]
+    fin = []
+    if robot_objetivo == "R2":
+        if R2_x < BB_x:
+            fin = fin_izq
+        else:
+            fin = fin_dch
 
-if __name__ == "__main__":
+    elif robot_objetivo == "BB":
+        if BB_x < R2_x:
+            fin = fin_izq
+        else:
+            fin = fin_dch
 
-    # get and parse arguments passed to main
-    # Add as many args as you need ...
-    ap = argparse.ArgumentParser()
-    ap.add_argument("-i", "--image", default="test2.jpg",
-                    help="path to the input image")
+    else:
+        print("El robot objetivo tiene que ser R2 o BB")
+        exit(1)
 
-    args = ap.parse_args()
-
-    main(args)
+    fin = [400*fin[0]+200, 400*fin[1]+200, 0]
+    pos_actual = robot.readOdometry()
+    siguiente = [pos_actual[0], pos_actual[1]+400, pos_actual[2]]
+    robot.alcanza_objetivo(siguiente, 30, 0, 0.5, False)
+    robot.alcanza_objetivo(fin, 80, 0, 2, True)

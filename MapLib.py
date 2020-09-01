@@ -439,9 +439,6 @@ class Map2D:
 
     # """
     # NOTE: Make sure self.costMatrix is a 2D numpy array of dimensions dimX x dimY
-    # TO-DO
-    # """
-    # self.costMatrix = ....
 
     def findPath(self, init, goals, out_of_grid=[]):
         """
@@ -482,6 +479,3 @@ class Map2D:
                 n = n+1
 
         return path
-
-    # def replanPath(self, ??):
-    # """ TO-DO """

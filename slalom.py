@@ -9,73 +9,22 @@ import math
 import matplotlib.pyplot as plt
 
 
-def main(args):
-    try:
-        if args.radioD < 0:
-            print('d must be a positive value')
-            exit(1)
-        if args.radioD > 600:
-            print("d is too high")
-            exit(1)
+def slalom(robot, inicial, intermedia, final, R):
 
-        # Instantiate Odometry. Default value will be 0,0,0
-        robot = Robot(init_position=[
-            600, (6*400 + 200), math.radians(270)])
+    robot.alcanza_objetivo(
+        intermedia, 30, R, 2, )
+    robot.alcanza_objetivo(
+        final, 30, -R, 2, rotar=False)
+    POS = robot.readPositions()
 
-        robot.rota(math.radians(235), .2)
-        R = -800
-        robot.alcanza_objetivo(
-            [600, (4*400 + 200), 3.14], 30, R, 2)
-        robot.alcanza_objetivo(
-            [600, (2*400 + 200), 3.14], 30, -R, 2)
-        POS = robot.readPositions()
+    plt.figure("V")
+    V = robot.readV()
+    V_acc = robot.readV_acc()
+    plt.plot(V)
+    plt.plot(V_acc, color='red')
+    plt.show()
 
-        plt.figure("V")
-        V = robot.readV()
-        V_acc = robot.readV_acc()
-        plt.plot(V)
-        plt.plot(V_acc, color='red')
-        plt.show()
-
-        plt.figure("W")
-        W = robot.readW()
-        plt.plot(W)
-        plt.show()
-        # robot.alcanza_objetivo([600, 2*400+200, 3.14], 150, A)
-
-        # POS2 = robot.readPositions()
-
-        # for elem in POS2:
-        #     POS.append(elem)
-        # print(len(POS))
-        myMap = Map2D("mapa1.txt")
-        myMap.drawMapWithRobotLocations(
-            POS, saveSnapshot=False)
-        # PART 2:
-        # robot.setSpeed()
-        # until ...
-
-        # ...
-
-        # 3. wrap up and close stuff ...
-        # This currently unconfigure the sensors, disable the motors,
-        # and restore the LED to the control of the BrickPi3 firmware.
-        # robot.finish_log()
-
-    except KeyboardInterrupt:
-        # except the program gets interrupted by Ctrl+C on the keyboard.
-        # THIS IS IMPORTANT if we want that motors STOP when we Ctrl+C ...
-        # robot.stopOdometry()
-        print("Vaya")
-
-
-if __name__ == "__main__":
-
-    # get and parse arguments passed to main
-    # Add as many args as you need ...
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--radioD", help="Radio to perform the 8-trajectory (mm)",
-                        type=float, default=400.0)
-    args = parser.parse_args()
-
-    main(args)
+    plt.figure("W")
+    W = robot.readW()
+    plt.plot(W)
+    plt.show()

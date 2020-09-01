@@ -12,6 +12,7 @@ import random  # Simular perturbaciones
 import numpy as np
 import math
 import cv2
+from MapLib import Map2D
 # tambien se podria utilizar el paquete de threading
 from multiprocessing import Process, Value, Array, Lock
 
@@ -65,6 +66,29 @@ def norm_pi(th):
         th_norm += 2 * np.pi
 
     return th_norm
+
+# Dadas dos celdas, celda1 y celda2 devuelve la arista por la cual
+# esta conectada la celda1 a la celda2
+#   0
+# 6   2
+#   4
+
+
+def arista(celda1, celda2):
+    celda1 = np.array(celda1)
+    celda2 = np.array(celda2)
+    dif = celda2 - celda1
+
+    if list(dif) == [0, 1]:
+        return 0
+    elif list(dif) == [1, 0]:
+        return 2
+    elif list(dif) == [0, -1]:
+        return 4
+    elif list(dif) == [-1, 0]:
+        return 6
+    else:
+        return -1
 
 
 class Robot:
@@ -180,9 +204,13 @@ class Robot:
         # Realiza una circunferencia de radio R
         # Alcanza el objetivo en T segundos
 
-    def alcanza_objetivo(self, wXg, error, R, T):
-
-        R = self.encuentra_angulo(wXg, R)
+    def alcanza_objetivo(self, wXg, error, R, T, rotar=True):
+        wXr = self.readOdometry()
+        if rotar and R != 0:
+            R = self.encuentra_angulo(wXg, R)
+        elif rotar:
+            vect = np.array([wXg[0]-wXr[0], wXg[1]-wXr[1]])
+            self.rota(math.atan2(vect[1], vect[0]), 0.5)
         wXr = self.readOdometry()
         # Posicion del robot respecto del mundo
         wTr = hom(wXr)
@@ -198,15 +226,17 @@ class Robot:
         rXg = loc(rTg)
         x = rXg[0]
         y = rXg[1]
-        R = (np.power(x, 2)+np.power(y, 2))/(2*y)
+       # R = (np.power(x, 2)+np.power(y, 2))/(2*y)
 
-        print("X Y R", x, y, R)
+        # print("X Y R", x, y, R)
         dist = np.sqrt(x*x+y*y)
         v = dist/T
-        w = v/R
+        if R != 0:
+            w = v/R
+        else:
+            w = 0
         self.setSpeed(v, w)
         rXr = [0, 0, 0]
-        i = 600
 
         # Bucle cerrado
         error_1 = 0
@@ -215,13 +245,13 @@ class Robot:
         accion_1 = np.array([v, w])
         while dist > error:
             velocity = self.readSpeed()
-            #print("Velocity", velocity)
+            # print("Velocity", velocity)
             error_v = np.array([velocity[0], velocity[1]]) - np.array([v, w])
             error_v = -error_v
             # print(v, w)
 
             accion = accion_1 + Kp * error_v + (Ki * .1 - Kp) * error_1
-            #print(accion, error_v, v, w)
+            # print(accion, error_v, v, w)
             error_1 = error_v
             accion_1 = accion
             self.setSpeed(accion[0], accion[1])
@@ -229,7 +259,7 @@ class Robot:
             rTr = hom(rXr)
             wTr_1 = wTr.dot(rTr)
             self.POS.append(loc(wTr_1))
-            i = i-1
+
             loc_robot = loc(wTr_1)
             dist_x = loc_robot[0] - wXg[0]
             dist_y = loc_robot[1] - wXg[1]
@@ -238,9 +268,9 @@ class Robot:
             self.W.append(velocity[1])
             self.V_acc.append(accion[0])
             self.W_acc.append(accion[1])
-        self.x = Value('d', loc_robot[0])
-        self.y = Value('d', loc_robot[1])
-        self.th = Value('d', loc_robot[2])
+            self.x = Value('d', loc_robot[0])
+            self.y = Value('d', loc_robot[1])
+            self.th = Value('d', loc_robot[2])
 
     def simubot(self, vc, xWR, T):
         if vc[1] == 0:   # w=0
@@ -268,7 +298,7 @@ class Robot:
         percentage = 0
         if(error >= 90):
             self.error = True
-            print("ERROR")
+            # print("ERROR")
             error = random.randint(0, 100)
             if(error >= 90):
                 percentage = 0.5
@@ -390,7 +420,7 @@ class Robot:
         # Filter by Color
         params.filterByColor = False
         # not directly color, but intensity on the channel input
-        #params.blobColor = 0
+        # params.blobColor = 0
         params.filterByConvexity = False
         params.filterByInertia = False
         mask_color = cv2.inRange(img_BGR, color_min, color_max)
@@ -402,9 +432,6 @@ class Robot:
         else:
             detector = cv2.SimpleBlobDetector_create(params)
 
-        # keypoints on original image (will look for blobs in grayscale)
-        keypoints = detector.detect(img_BGR)
-
         # detector finds "dark" blobs by default, so invert image for results with same detector
         keypoints_color = detector.detect(255-mask_color)
 
@@ -413,58 +440,142 @@ class Robot:
             K.append((k.pt[0], k.pt[1], k.size))
         return K
 
+    def planificar(self, file_obstaculos, mapa, goals):
+        f = open(file_obstaculos)
+        obstaculos = []
+        for line in f:
+            line = line.rstrip()
+            line = line.split(",")
+            obstaculos.append([int(line[0]), int(line[1]), int(line[2])])
+        f.close()
 
-# def startOdometry(self):
-#     """ This starts a new process/thread that will be updating the odometry periodically """
-#     self.finished.value = False
-#     # additional_params?))
-#     self.p = Process(target=self.updateOdometry, args=())
-#     self.p.start()
-#     print("PID: ", self.p.pid)
+        myMap = Map2D("mapa1.txt")
 
-# # You may want to pass additional shared variables besides the odometry values and stop flag
-# def updateOdometry(self):  # , additional_params?):
-#     """ To be filled ...  """
+        parte_izq = [[0, 6], [2, 2]]
+        parte_central = [[3, 6], [6, 3]]
+        parte_dch = [[7, 6], [9, 2]]
 
-#     while not self.finished.value:
-#         # current processor time in a floating point value, in seconds
-#         tIni = time.clock()
+        if mapa == 'A':
+            parte_dch = [[7, 6], [9, 0]]
+        elif mapa == 'B':
+            parte_izq = [[0, 6], [2, 0]]
+        else:
+            print("El mapa tiene que ser A o B")
+            exit(1)
 
-#         # compute updates
+        pos = self.readOdometry()
+        origin = myMap._pos2cell(pos[0], pos[1])
 
-#         ######## UPDATE FROM HERE with your code (following the suggested scheme) ########
-#         sys.stdout.write("Update of odometry ...., X=  %d, \
-#             Y=  %d, th=  %d \n" % (self.x.value, self.y.value, self.th.value))
-#         #print("Dummy update of odometry ...., X=  %.2f" %(self.x.value) )
+        path = myMap.findPath(origin, goals, out_of_grid=[
+            parte_izq, parte_central, parte_dch])
 
-#         # update odometry uses values that require mutex
-#         # (they are declared as value, so lock is implicitly done for atomic operations, BUT =+ is NOT atomic)
+        # Generamos el mapa con los obstaculos aniadidos
+        mapa_real = Map2D("mapa1.txt")
+        for obstaculo in obstaculos:
+            mapa_real.deleteConnection(
+                obstaculo[0], obstaculo[1], obstaculo[2])
 
-#         # Operations like += which involve a read and write are not atomic.
-#         # with self.x.get_lock():
-#         #     self.x.value += 1
+        posicion_recorrida = []
 
-#         # # to "lock" a whole set of operations, we can use a "mutex"
-#         # self.lock_odometry.acquire()
-#         # # self.x.value+=1
-#         # self.y.value += 1
-#         # self.th.value += 1
-#         # self.lock_odometry.release()
+        i = 0
+        N = len(path)
+        while i < N:
+            posicion = path[i]
+            if i == N-1:
+                posicion_recorrida.append(posicion)
+            else:
 
-#         # save LOG
-#         # Need to decide when to store a log with the updated odometry ...
+                siguiente = path[i+1]
+                conexion = arista(posicion, siguiente)
+                if not mapa_real.isConnected(posicion[0], posicion[1], conexion):
+                    print("PATH anterior", path)
+                    myMap.deleteConnection(posicion[0], posicion[1], conexion)
 
-#         ######## UPDATE UNTIL HERE with your code ########
+                    path = myMap.findPath(posicion, goals, out_of_grid=[
+                        parte_izq, parte_central, parte_dch])
+                    print("PATH posterior", path)
+                    i = 0
+                    N = len(path)
 
-#         tEnd = time.clock()
-#         time.sleep(self.P - (tEnd-tIni))
+                posicion_recorrida.append(posicion)
 
-#     #print("Stopping odometry ... X= %d" %(self.x.value))
-#     sys.stdout.write("Stopping odometry ... X=  %.2f, \
-#             Y=  %.2f, th=  %.2f \n" % (self.x.value, self.y.value, self.th.value))
+            i = i+1
 
-# # Stop the odometry thread.
+        # Obtenemos las localizaciones de los robots
+        localizaciones_robot = []
+        for i, posicion in enumerate(posicion_recorrida):
+            if i == len(posicion_recorrida)-1:
+                x = 200 + 400 * posicion[0]
+                y = 200 + 400 * posicion[1]
+                theta = localizaciones_robot[i-1][2]
 
-# def stopOdometry(self):
-#     self.finished.value = True
-#     # self.BP.reset_all()
+                localizaciones_robot.append([x, y, theta])
+
+            else:
+                siguiente = posicion_recorrida[i+1]
+                conexion = arista(posicion, siguiente)
+                x = 200 + 400 * posicion[0]
+                y = 200 + 400 * posicion[1]
+                thetas = [90, -1, 0, -1, -90, -1, 180]
+                theta = thetas[conexion]
+                localizaciones_robot.append([x, y, math.radians(theta)])
+            self.x = Value('d', x)
+            self.y = Value('d', y)
+            self.th = Value('d', theta)
+
+        return localizaciones_robot, myMap
+
+    # def startOdometry(self):
+    #     """ This starts a new process/thread that will be updating the odometry periodically """
+    #     self.finished.value = False
+    #     # additional_params?))
+    #     self.p = Process(target=self.updateOdometry, args=())
+    #     self.p.start()
+    #     print("PID: ", self.p.pid)
+
+    # # You may want to pass additional shared variables besides the odometry values and stop flag
+    # def updateOdometry(self):  # , additional_params?):
+    #     """ To be filled ...  """
+
+    #     while not self.finished.value:
+    #         # current processor time in a floating point value, in seconds
+    #         tIni = time.clock()
+
+    #         # compute updates
+
+    #         ######## UPDATE FROM HERE with your code (following the suggested scheme) ########
+    #         sys.stdout.write("Update of odometry ...., X=  %d, \
+    #             Y=  %d, th=  %d \n" % (self.x.value, self.y.value, self.th.value))
+    #         #print("Dummy update of odometry ...., X=  %.2f" %(self.x.value) )
+
+    #         # update odometry uses values that require mutex
+    #         # (they are declared as value, so lock is implicitly done for atomic operations, BUT =+ is NOT atomic)
+
+    #         # Operations like += which involve a read and write are not atomic.
+    #         # with self.x.get_lock():
+    #         #     self.x.value += 1
+
+    #         # # to "lock" a whole set of operations, we can use a "mutex"
+    #         # self.lock_odometry.acquire()
+    #         # # self.x.value+=1
+    #         # self.y.value += 1
+    #         # self.th.value += 1
+    #         # self.lock_odometry.release()
+
+    #         # save LOG
+    #         # Need to decide when to store a log with the updated odometry ...
+
+    #         ######## UPDATE UNTIL HERE with your code ########
+
+    #         tEnd = time.clock()
+    #         time.sleep(self.P - (tEnd-tIni))
+
+    #     #print("Stopping odometry ... X= %d" %(self.x.value))
+    #     sys.stdout.write("Stopping odometry ... X=  %.2f, \
+    #             Y=  %.2f, th=  %.2f \n" % (self.x.value, self.y.value, self.th.value))
+
+    # # Stop the odometry thread.
+
+    # def stopOdometry(self):
+    #     self.finished.value = True
+    #     # self.BP.reset_all()
