@@ -16,4 +16,8 @@ from Robot import Robot
 def detectar_blob(robot, imagen):
 
     blobs = robot.return_blobs(imagen, (10, 10, 100), (50, 50, 255))
-    return sorted(blobs, key=lambda x: x[2])
+    ordenados = sorted(blobs, key=lambda x: x[2])
+    mas_grande = ordenados[-1]
+    robot.write_log("Blob mas grande x: " +
+                    str(mas_grande[0])+" y: "+str(mas_grande[1])+" size: "+str(mas_grande[2]))
+    return ordenados

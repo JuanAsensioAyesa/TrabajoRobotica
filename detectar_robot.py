@@ -31,14 +31,18 @@ def detectar_robot(robot, imagen, robot_objetivo):
     if robot_objetivo == "R2":
         if R2_x < BB_x:
             fin = fin_izq
+            robot.write_log("Robot a la izquierda")
         else:
             fin = fin_dch
+            robot.write_log("Robot a la derecha")
 
     elif robot_objetivo == "BB":
         if BB_x < R2_x:
             fin = fin_izq
+            robot.write_log("Robot a la izquierda")
         else:
             fin = fin_dch
+            robot.write_log("Robot a la derecha")
 
     else:
         print("El robot objetivo tiene que ser R2 o BB")

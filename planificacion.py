@@ -17,5 +17,5 @@ import matplotlib.pyplot as plt
 
 def planificacion(robot, file_obstaculos, mapa, goals):
 
-    localizaciones, myMap = robot.planificar(file_obstaculos, mapa, goals)
-    return localizaciones, myMap
+    myMap = robot.recorrer_camino(file_obstaculos, mapa, goals)
+    return myMap

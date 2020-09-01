@@ -26,6 +26,8 @@ if __name__ == "__main__":
 
     args = ap.parse_args()
     args.radio = int(args.radio)
+
+    # Posiciones iniciales,intermedia y finales segun el mapa A o B
     posicion_inicial_A = np.array([400+200, 6*400+200, math.radians(270)])
     posicion_intermedia_A = np.array([400+200, 4*400+200, math.radians(270)])
     posicion_final_A = np.array([400+200, 2*400+200, math.radians(270)])
@@ -51,20 +53,30 @@ if __name__ == "__main__":
     else:
         print("El mapa tiene que ser A o B")
         exit(1)
+
+    # Posiciones finales para la planificacion del camino
     goals = [[3, 2], [6, 2]]
+    # Inicializa al Robot en su posicion inicial
     robot = Robot(init_position=posicion)
+    robot.init_odometria()
+
+    # Realiza el slalom correspondiente
     slalom(robot, posicion, intermedio, final, args.radio)
-    posiciones_planificacion, myMap = planificacion(
+
+    myMap = planificacion(
         robot, "obstaculos.txt", args.start, goals)
 
+    # Detecta los blobs
     blobs = detectar_blob(robot, args.ball)
+
+    # Detecta el robot y se dirige a su salida
     detectar_robot(robot, args.robots, args.goal)
 
+    # Lee todas las posiciones que ha recorrido el robot
     posiciones_robot = robot.readPositions()
 
+    # Printea las coordenadas y el tamanio del mayor blob rojo
     print(blobs[-1])
 
-    for pos in posiciones_planificacion:
-        posiciones_robot.append(pos)
-
     myMap.drawMapWithRobotLocations(posiciones_robot, saveSnapshot=False)
+    robot.stop_odometria()

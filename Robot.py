@@ -92,25 +92,27 @@ def arista(celda1, celda2):
 
 
 class Robot:
-    def __init__(self,  init_position=[0.0, 0.0, 0.0]):
+    def __init__(self,  init_position=[0.0, 0.0, 0.0], log_file="log.txt"):
         """
             Clase para representar al robot
             x,y,th -> posicion x,y del robot y su orientacion
             v,w -> velocidades lineal y angular actuales
             V,W -> Listas con el registro de velocidades linear angular recogidas por readOdometry
             V_acc,W_acc -> Listas con el registro de velocidades establecidas con setSpeed
-            POS-> Lista de las posiciones del robot
-            error-> (Unused) Flag para indicar que se ha producido un error en la lectura de la velocidad
+            POS -> Lista de las posiciones del robot
+            error -> (Unused) Flag para indicar que se ha producido un error en la lectura de la velocidad
+            tiempo_real -> indica si la simulacion se va a realizar en tiempo real
         """
-
+        self.log = log_file
+        self.f = None
         # odometry shared memory values
         self.x = Value('d', init_position[0])
         self.y = Value('d', init_position[1])
         self.th = Value('d', init_position[2])
 
-        # Velocidades lineal y angular
-        self.v = 0
-        self.w = 0
+        # Velocidades lineal y angular actuales
+        self.v = Value('d', 0)
+        self.w = Value('d', 0)
 
         # Listas de log
         self.V = []
@@ -121,16 +123,37 @@ class Robot:
         self.error = False
 
     """
-        Establece v como velocidad lineal del robot  y 
+        Prepara el fichero de log
+    """
+
+    def init_odometria(self):
+        self.f = open(self.log, 'w')
+
+    """
+        Cierra el fichero de log
+    """
+
+    def stop_odometria(self):
+        self.f.close()
+
+    """
+        Escribe en el fichero de log
+    """
+
+    def write_log(self, texto):
+        self.f.write(texto+'\n')
+    """
+
+        Establece v como velocidad lineal del robot  y
         w como velocidad angular del robot
     """
 
     def setSpeed(self, v, w):
 
-        self.v = v
-        self.w = w
+        self.v = Value('d', v)
+        self.w = Value('d', w)
 
-    """ 
+    """
         Rota en su posicion hasta alcanzar el angulo theta en T segundos
     """
 
@@ -145,13 +168,16 @@ class Robot:
         while abs(pos[2] - theta) > 0.02:
             pos = self.simubot([0, w], pos, .1)
             # print(math.degrees(pos[2]), math.degrees(theta))
+
             self.POS.append(pos)
+
+        self.write_log("Rotando hasta angulo "+str(pos[2]))
         self.th = Value('d', pos[2])
 
     """
         Encuentra el angulo de rotacion inicial para llegar al objetivo con
         un Radio R
-        El angulo lo encuentra incrementando por inc en cada iteración (radianes)
+        El angulo lo encuentra incrementando por inc en cada iteración(radianes)
     """
 
     def encuentra_angulo(self, wXg, R, inc=.001):
@@ -168,7 +194,7 @@ class Robot:
         theta = wXr[2]
         signo = -(R/abs(R))  # Para que no "De la vuelta" en sentido contrario
         while abs(R_est-R) > abs(R*0.01):  # Error del 1% (En radianes)
-            print(R_est)
+            # print(R_est)
             theta = norm_pi(theta + inc * signo)
             wTr = hom([wXr[0], wXr[1], theta])
             wTg = hom(wXg)
@@ -181,7 +207,7 @@ class Robot:
         self.rota(theta, 0.2)
         return R_est
 
-    """ 
+    """
         Alcanza el objetivo wXg con un error <= error en T segundos
 
         si R != describe una trayectoria con ese radio
@@ -190,7 +216,7 @@ class Robot:
         trayectoria realizable
 
         Cada 0.1 segundos simula la posicion del robot actualizando
-        POS,V,W,V_acc,W_acc
+        POS, V, W, V_acc, W_acc
         Además se actualiza la posicion del robot
 
         Implementación en bucle cerrado siguiendo un control PI
@@ -235,11 +261,13 @@ class Robot:
         Ki = 10
         Kp = 0.5
         accion_1 = np.array([v, w])
+        i = 20
         while dist > error:
+            self.write_log("Objetivo a distancia: "+str(dist))
             velocity = self.readSpeed()
             # print("Velocity", velocity)
             error_v = np.array([v, w]) - np.array([velocity[0], velocity[1]])
-            #error_v = -error_v
+            # error_v = -error_v
 
             accion = accion_1 + Kp * error_v + (Ki * .1 - Kp) * error_1
             # print(accion, error_v, v, w)
@@ -249,24 +277,28 @@ class Robot:
             rXr = self.simubot(accion, rXr, .1)
             rTr = hom(rXr)
             wTr_1 = wTr.dot(rTr)
-            self.POS.append(loc(wTr_1))
 
             loc_robot = loc(wTr_1)
             dist_x = loc_robot[0] - wXg[0]
             dist_y = loc_robot[1] - wXg[1]
             dist = (np.sqrt(dist_x*dist_x + dist_y*dist_y))
-            self.V.append(velocity[0])
-            self.W.append(velocity[1])
-            self.V_acc.append(accion[0])
-            self.W_acc.append(accion[1])
+
             # Actualizamos la posicion del robot
             self.x = Value('d', loc_robot[0])
             self.y = Value('d', loc_robot[1])
             self.th = Value('d', loc_robot[2])
 
+            self.POS.append(loc(wTr_1))
+            self.V_acc.append(accion[0])
+            self.W_acc.append(accion[1])
+            self.V.append(velocity[0])
+            self.W.append(velocity[1])
+
+            i = i-1
+        self.write_log("Objetivo alcanzado con error "+str(dist))
     """
         Simula el movimiento del robot desde xWR T segundos
-        v,w = vc
+        v, w = vc
     """
 
     def simubot(self, vc, xWR, T):
@@ -282,15 +314,16 @@ class Robot:
             xRk = np.array([R*np.sin(titak), R*(1-np.cos(titak)), titak])
 
         xWRp = loc(np.dot(hom(xWR), hom(xRk)))   # nueva localizaci�n xWR
+
         return xWRp
 
     """
         Lee la velocidad actual del robot
         Genera un error con probabilidad p
         Una vez que se ha producido un error:
-            error del 10% -> p = 0.75
-            error del 20% -> p = 0.15
-            error del 50% -> p = 0.1
+            error del 10 % -> p = 0.75
+            error del 20 % -> p = 0.15
+            error del 30 % -> p = 0.1
     """
 
     def readSpeed(self, p=0.05):
@@ -298,20 +331,24 @@ class Robot:
         percentage = 0
         if(error >= (1-p)*100):
             self.error = True
-            # print("ERROR")
+
             error = random.randint(0, 100)
             if(error >= 90):
-                percentage = 0.5
+                self.write_log("Error 30%")
+                percentage = 0.3
             elif(error > 75):
+                self.write_log("Error 20%")
                 percentage = 0.2
             else:
+                self.write_log("Error 10%")
                 error = 0.1
         signo = random.randint(0, 1)
 
         signo = -1
-        v = self.v + signo*(self.v * percentage)
-        w = self.w + signo*(self.w*percentage)
+        v = self.v.value + signo*(self.v.value * percentage)
+        w = self.w.value + signo*(self.w.value * percentage)
         # self.setSpeed(v, w)
+        #self.write_log("Velocidades actuales" + " "+str(v)+" "+str(w))
         return v, w
 
     """
@@ -320,6 +357,7 @@ class Robot:
 
     def readOdometry(self):
         """ Returns current value of odometry estimation """
+
         return self.x.value, self.y.value, self.th.value
 
     """
@@ -354,8 +392,8 @@ class Robot:
         return self.W_acc
 
     """
-        ref-> path a la imagen de referencia
-        img-> imagen que analizar
+        ref -> path a la imagen de referencia
+        img -> imagen que analizar
 
         Devuelve la media de la posicion de los keypoints de la imagen de referencia
         que coinciden en img
@@ -420,12 +458,13 @@ class Robot:
                 coord = kp2[m.trainIdx].pt
                 coord = np.array(coord)
                 acum = acum + coord
+
         return acum / sum(matchesMask)
 
     """
-        Devuelve una lista con todos los blobs de 
+        Devuelve una lista con todos los blobs de
         tal que color_min <= color_blob <= color_max
-        
+
     """
 
     def return_blobs(self, image, color_min, color_max):
@@ -472,19 +511,17 @@ class Robot:
 
     """
         file_obstaculos es un fichero de texto con lineas que indican obstaculos:
-            x,y,a -> la celda (x,y) tiene un obstaculo en su arista a
+            x, y, a -> la celda(x, y) tiene un obstaculo en su arista a
             valores de a: 7  0  1
                           6  xy 2
                           5  4  3
             mapa indica si el mapa es el A o el B
             goals son las casillas de final de planificacion
 
-            Devuelve localizaciones,myMap
-            Localizaciones contiene el camino que ha realizado el robot, myMap el objeto 
-            tipo map2D para el plot
+            Devuelve el objeto map2d para el plot
     """
 
-    def planificar(self, file_obstaculos, mapa, goals):
+    def recorrer_camino(self, file_obstaculos, mapa, goals):
         f = open(file_obstaculos)
         obstaculos = []
         for line in f:
@@ -517,32 +554,39 @@ class Robot:
         # Generamos el mapa con los obstaculos aniadidos
         mapa_real = Map2D("mapa1.txt")
         for obstaculo in obstaculos:
+
             mapa_real.deleteConnection(
                 obstaculo[0], obstaculo[1], obstaculo[2])
 
         posicion_recorrida = []
 
+        # Se va comprobando si el camino se puede realizar sin obstaculos
         i = 0
         N = len(path)
         while i < N:
             posicion = path[i]
             if i == N-1:
                 posicion_recorrida.append(posicion)
+                self.write_log("Alcanzada ultima celda: " +
+                               str(posicion[0])+" "+str(posicion[1]))
+                if list(posicion) in list(goals):
+                    self.write_log("¡Es un objetivo!")
             else:
 
                 siguiente = path[i+1]
                 conexion = arista(posicion, siguiente)
                 if not mapa_real.isConnected(posicion[0], posicion[1], conexion):
-                    #print("PATH anterior", path)
+                    # print("PATH anterior", path)
                     # Se ha detectado un obstaculo inesperado, se recalcula el camino
                     myMap.deleteConnection(posicion[0], posicion[1], conexion)
 
                     path = myMap.findPath(posicion, goals, out_of_grid=[
                         parte_izq, parte_central, parte_dch])
-                    #print("PATH posterior", path)
+                    # print("PATH posterior", path)
                     i = 0
                     N = len(path)
-
+                self.write_log("Celda actual: " +
+                               str(posicion[0])+" "+str(posicion[1]))
                 posicion_recorrida.append(posicion)
 
             i = i+1
@@ -551,11 +595,13 @@ class Robot:
         localizaciones_robot = []
         for i, posicion in enumerate(posicion_recorrida):
             if i == len(posicion_recorrida)-1:
+
                 x = 200 + 400 * posicion[0]
                 y = 200 + 400 * posicion[1]
                 theta = localizaciones_robot[i-1][2]
 
                 localizaciones_robot.append([x, y, theta])
+                self.POS.append([x, y, theta])
 
             else:
                 siguiente = posicion_recorrida[i+1]
@@ -565,8 +611,9 @@ class Robot:
                 thetas = [90, -1, 0, -1, -90, -1, 180]
                 theta = thetas[conexion]
                 localizaciones_robot.append([x, y, math.radians(theta)])
+                self.POS.append([x, y, math.radians(theta)])
             self.x = Value('d', x)
             self.y = Value('d', y)
             self.th = Value('d', theta)
 
-        return localizaciones_robot, myMap
+        return myMap
