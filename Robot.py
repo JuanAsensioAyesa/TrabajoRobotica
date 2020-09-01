@@ -187,9 +187,10 @@ class Robot:
         y = rXg[1]
         R_est = (np.power(x, 2)+np.power(y, 2))/(2*y)
         theta = wXr[2]
+        signo = -(R/abs(R))
         while abs(R_est-R) > abs(R*0.01):
             print(R_est)
-            theta = norm_pi(theta + inc)
+            theta = norm_pi(theta + inc * signo)
             wTr = hom([wXr[0], wXr[1], theta])
             wTg = hom(wXg)
             rTw = np.linalg.inv(wTr)

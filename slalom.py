@@ -15,7 +15,6 @@ def slalom(robot, inicial, intermedia, final, R):
         intermedia, 30, R, 2, )
     robot.alcanza_objetivo(
         final, 30, -R, 2, rotar=False)
-    POS = robot.readPositions()
 
     plt.figure("V")
     V = robot.readV()

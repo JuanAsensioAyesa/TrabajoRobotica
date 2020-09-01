@@ -21,9 +21,11 @@ if __name__ == "__main__":
                     help="radio para realizar el slalom")
     ap.add_argument("-s", "--start", default="A",
                     help="Inicio del circuito (A o B)")
+    ap.add_argument("-g", "--goal", default="R2",
+                    help="Robot objetivo (R2 o BB)")
 
     args = ap.parse_args()
-
+    args.radio = int(args.radio)
     posicion_inicial_A = np.array([400+200, 6*400+200, math.radians(270)])
     posicion_intermedia_A = np.array([400+200, 4*400+200, math.radians(270)])
     posicion_final_A = np.array([400+200, 2*400+200, math.radians(270)])
@@ -56,7 +58,7 @@ if __name__ == "__main__":
         robot, "obstaculos.txt", args.start, goals)
 
     blobs = detectar_blob(robot, args.ball)
-    posiciones_robot = detectar_robot(robot, args.robots, "BB")
+    detectar_robot(robot, args.robots, args.goal)
 
     posiciones_robot = robot.readPositions()
 
