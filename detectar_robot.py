@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 import numpy as np
 from Robot import Robot
+import math
 
 """
     en Imagen aparecen los dos robots.
@@ -11,6 +12,12 @@ from Robot import Robot
 
 
 def detectar_robot(robot, imagen, robot_objetivo, blob=False):
+    pos_actual = robot.readOdometry()
+    # Se avanza una casilla en linea recta para facilitar llegar a la casilla de salida
+    siguiente = [pos_actual[0], pos_actual[1]+400, pos_actual[2]]
+    robot.alcanza_objetivo(siguiente, 30, 0, 0.5, False)
+    robot.alcanza_objetivo([5*400, 4*400+200, 0], 30, 0, 2)
+    robot.rota(math.radians(90), 0.3)
     R2 = "R2-D2_s.png"
     BB = "BB8_s.png"
 
@@ -58,8 +65,5 @@ def detectar_robot(robot, imagen, robot_objetivo, blob=False):
         exit(1)
 
     fin = [400*fin[0]+200, 400*fin[1]+200, 0]
-    pos_actual = robot.readOdometry()
-    # Se avanza una casilla en linea recta para facilitar llegar a la casilla de salida
-    siguiente = [pos_actual[0], pos_actual[1]+400, pos_actual[2]]
-    robot.alcanza_objetivo(siguiente, 30, 0, 0.5, False)
+
     robot.alcanza_objetivo(fin, 80, 0, 2, True)
