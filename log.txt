@@ -1,6 +1,7 @@
 Rotando hasta angulo -3.0007963267947395
 Objetivo a distancia: 799.9999999999995
 Objetivo a distancia: 793.4089214381773
+Error 10%
 Objetivo a distancia: 784.8737790833854
 Objetivo a distancia: 774.4154863143016
 Objetivo a distancia: 762.05966874183
@@ -10,13 +11,12 @@ Objetivo a distancia: 713.9326086502383
 Objetivo a distancia: 694.3347570420083
 Objetivo a distancia: 673.0355998082774
 Objetivo a distancia: 650.0873255737004
+Error 10%
 Objetivo a distancia: 625.5461637400971
 Objetivo a distancia: 599.4722467093966
-Error 10%
 Objetivo a distancia: 571.9294625431904
 Objetivo a distancia: 542.9852984199159
 Objetivo a distancia: 512.7106752732427
-Error 10%
 Objetivo a distancia: 481.1797740168393
 Objetivo a distancia: 448.4698537813202
 Objetivo a distancia: 414.661062608739
@@ -26,38 +26,41 @@ Objetivo a distancia: 307.48210780985505
 Objetivo a distancia: 270.1300830452238
 Objetivo a distancia: 232.11616741996545
 Objetivo a distancia: 193.5335051816417
-Error 10%
 Objetivo a distancia: 154.4766341589397
 Objetivo a distancia: 115.0412541187391
 Objetivo a distancia: 75.32399227612005
-Objetivo alcanzado con error 35.42216653187448
-Objetivo a distancia: 807.2549062659372
-Objetivo a distancia: 795.4041908671338
-Objetivo a distancia: 781.533581475337
-Objetivo a distancia: 765.6786187413301
-Objetivo a distancia: 747.8799495869657
-Objetivo a distancia: 728.1832346240715
-Objetivo a distancia: 706.6390462589007
-Objetivo a distancia: 683.3027589477717
-Objetivo a distancia: 658.2344336279045
-Objetivo a distancia: 631.4986991814998
-Objetivo a distancia: 603.1646350731812
-Objetivo a distancia: 573.3056613291384
-Objetivo a distancia: 541.9994453314383
-Objetivo a distancia: 509.3278404598681
-Objetivo a distancia: 475.37688129112416
-Objetivo a distancia: 440.2368775724904
-Objetivo a distancia: 404.0026822701881
-Objetivo a distancia: 366.7742747286141
-Objetivo a distancia: 328.6579385069825
-Objetivo a distancia: 289.7686265798149
-Objetivo a distancia: 250.2348771951029
-Objetivo a distancia: 210.2097519249725
-Objetivo a distancia: 169.89787277705628
-Error 10%
-Objetivo a distancia: 129.63342087511768
-Objetivo a distancia: 90.16344897775929
-Objetivo alcanzado con error 54.10561700261778
+Objetivo a distancia: 35.42216653187448
+Objetivo alcanzado con error 4.566452982345802
+Objetivo a distancia: 799.3975508283494
+Objetivo a distancia: 793.4651763017189
+Objetivo a distancia: 785.5526348063216
+Objetivo a distancia: 775.6796767859602
+Objetivo a distancia: 763.8709462404381
+Objetivo a distancia: 750.1559193415269
+Objetivo a distancia: 734.5688310286987
+Objetivo a distancia: 717.1485897786516
+Objetivo a distancia: 697.9386807765409
+Objetivo a distancia: 676.9870577520699
+Objetivo a distancia: 654.3460237810777
+Objetivo a distancia: 630.0721013945164
+Objetivo a distancia: 604.2258923843236
+Objetivo a distancia: 576.8719277540188
+Objetivo a distancia: 548.0785083385459
+Objetivo a distancia: 517.9175367266282
+Objetivo a distancia: 486.46434128509566
+Objetivo a distancia: 453.79749335698347
+Objetivo a distancia: 419.9986191812766
+Objetivo a distancia: 385.1522089671714
+Objetivo a distancia: 349.34542730618375
+Objetivo a distancia: 312.6679328070501
+Objetivo a distancia: 275.2117232873312
+Objetivo a distancia: 237.0710439887098
+Objetivo a distancia: 198.34245555428237
+Objetivo a distancia: 159.12535163495906
+Objetivo a distancia: 119.52399130346676
+Objetivo a distancia: 79.65639780597395
+Objetivo a distancia: 39.718661826565956
+Objetivo alcanzado con error 5.553375137156497
 Celda actual: 1 2
 Celda actual: 1 1
 Celda actual: 2 1
@@ -65,34 +68,3 @@ Celda actual: 3 1
 Alcanzada ultima celda: 3 2
 ¡Es un objetivo!
 Blob mas grande x: 75.0328140259 y: 95.0961303711 size: 84.2872619629
-Robot a la izquierda
-Objetivo a distancia: 399.9999999999999
-Objetivo a distancia: 320.0
-Objetivo a distancia: 240.0
-Objetivo a distancia: 160.0
-Objetivo a distancia: 80.0
-Objetivo alcanzado con error 0.0
-Rotando hasta angulo 1.249045772398254
-Objetivo a distancia: 1264.9110640673512
-Objetivo a distancia: 1201.665510863984
-Objetivo a distancia: 1138.4199576606165
-Objetivo a distancia: 1075.174404457249
-Objetivo a distancia: 1011.9288512538814
-Objetivo a distancia: 948.683298050514
-Objetivo a distancia: 885.4377448471464
-Objetivo a distancia: 822.1921916437789
-Error 10%
-Objetivo a distancia: 758.9466384404114
-Objetivo a distancia: 695.7010852370439
-Objetivo a distancia: 632.4555320336763
-Objetivo a distancia: 569.2099788303086
-Objetivo a distancia: 505.964425626941
-Error 10%
-Objetivo a distancia: 442.7188724235739
-Objetivo a distancia: 379.47331922020635
-Error 10%
-Objetivo a distancia: 316.22776601683876
-Objetivo a distancia: 252.98221281347114
-Objetivo a distancia: 189.73665961010354
-Objetivo a distancia: 126.49110640673597
-Objetivo alcanzado con error 63.24555320336838

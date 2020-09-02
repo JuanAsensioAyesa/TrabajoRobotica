@@ -18,11 +18,11 @@ import matplotlib.pyplot as plt
 def slalom(robot, inicial, intermedia, final, R):
 
     robot.alcanza_objetivo(
-        intermedia, 70, R, 2, )
+        intermedia, 30, R, 2)
 
     # Ponemos rotar a false para que realice una trayectoria mas "natural"
     robot.alcanza_objetivo(
-        final, 70, -R, 2, rotar=False)
+        final, 30, -R, 2, rotar=False)
 
     plt.figure("V")
     V = robot.readV()

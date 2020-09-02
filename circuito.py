@@ -60,8 +60,16 @@ if __name__ == "__main__":
     robot = Robot(init_position=posicion)
     robot.init_odometria()
 
+    if args.radio <= 0 or args.radio > 400:
+        print("El radio debe ser de 0 a 400 mm")
+        exit(1)
+    R = 400 + (400-args.radio)
+    #R = args.radio
+    if args.start == "B":
+        R = -R
+
     # Realiza el slalom correspondiente
-    slalom(robot, posicion, intermedio, final, args.radio)
+    slalom(robot, posicion, intermedio, final, R)
 
     myMap = planificacion(
         robot, "obstaculos.txt", args.start, goals)

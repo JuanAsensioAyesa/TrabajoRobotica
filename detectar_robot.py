@@ -10,13 +10,22 @@ from Robot import Robot
 """
 
 
-def detectar_robot(robot, imagen, robot_objetivo):
+def detectar_robot(robot, imagen, robot_objetivo, blob=False):
     R2 = "R2-D2_s.png"
     BB = "BB8_s.png"
 
-    # Se localizan ambos robots
-    coord_R2 = robot.match(R2, imagen)
-    coord_BB = robot.match(BB, imagen)
+    if not blob:
+        # Se localizan ambos robots
+        coord_R2 = robot.match(R2, imagen)
+        coord_BB = robot.match(BB, imagen)
+    else:
+        blobs_R2 = np.array(robot.return_blobs(
+            imagen, (70, 5, 5), (255, 50, 50)))
+        blobs_BB = np.array(robot.return_blobs(
+            imagen, (10, 70, 100), (50, 128, 255)))
+        print(len(blobs_R2))
+        coord_R2 = np.mean(blobs_R2)
+        coord_BB = np.mean(blobs_BB)
 
     R2_x = coord_R2[0]
     BB_x = coord_BB[0]

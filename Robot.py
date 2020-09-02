@@ -263,6 +263,7 @@ class Robot:
         accion_1 = np.array([v, w])
         i = 20
         while dist > error:
+            print(dist)
             self.write_log("Objetivo a distancia: "+str(dist))
             velocity = self.readSpeed()
             # print("Velocity", velocity)
