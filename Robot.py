@@ -263,7 +263,7 @@ class Robot:
         accion_1 = np.array([v, w])
         i = 20
         while dist > error:
-            print(dist)
+            # print(dist)
             self.write_log("Objetivo a distancia: "+str(dist))
             velocity = self.readSpeed()
             # print("Velocity", velocity)
@@ -327,7 +327,7 @@ class Robot:
             error del 30 % -> p = 0.1
     """
 
-    def readSpeed(self, p=0.05):
+    def readSpeed(self, p=0.15):
         error = random.randint(0, 100)
         percentage = 0
         if(error >= (1-p)*100):
